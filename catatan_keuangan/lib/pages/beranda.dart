@@ -17,9 +17,6 @@ class _BerandaState extends State<Beranda> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _tabBarController = TabController(length: 2, vsync: this);
-    _tabBarController.addListener(() {
-      setState(() {});
-    });
   }
 
   @override
@@ -51,20 +48,13 @@ class _BerandaState extends State<Beranda> with TickerProviderStateMixin {
         ),
       ),
       body: TabBarView(
+        physics: const NeverScrollableScrollPhysics(),
         controller: _tabBarController,
         children: [
           form_keuangan.FormKeuangan(),
           riwayat_keuangan.RiwayatKeuangan(),
         ],
       ),
-      floatingActionButton: _tabBarController.index == 0
-          ? FloatingActionButton(
-              onPressed: () {},
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              child: Icon(Icons.add),
-            )
-          : null,
     );
   }
 }
