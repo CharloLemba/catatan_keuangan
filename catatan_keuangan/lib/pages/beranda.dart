@@ -11,14 +11,23 @@ class Beranda extends StatefulWidget {
 }
 
 class _BerandaState extends State<Beranda> with TickerProviderStateMixin {
+  // =================================
+  // Controller untuk TabBar & TabView
+  // =================================
   late final TabController _tabBarController;
 
+  // =====================================
+  // Inisialisasi awal untuk TabController
+  // =====================================
   @override
   void initState() {
     super.initState();
     _tabBarController = TabController(length: 2, vsync: this);
   }
 
+  // =====================================================
+  // (WAJIB) Dispose _tabBarController untuk menghemat RAM
+  // =====================================================
   @override
   void dispose() {
     _tabBarController.dispose();
@@ -28,6 +37,9 @@ class _BerandaState extends State<Beranda> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // =====================
+      // AppBar utama aplikasi
+      // =====================
       appBar: AppBar(
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
@@ -36,6 +48,9 @@ class _BerandaState extends State<Beranda> with TickerProviderStateMixin {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        // ===============================
+        // TabBar didalam & dibawah AppBar
+        // ===============================
         bottom: TabBar(
           controller: _tabBarController,
           labelColor: Colors.white,
@@ -47,6 +62,9 @@ class _BerandaState extends State<Beranda> with TickerProviderStateMixin {
           ],
         ),
       ),
+      // ==================================================================================
+      // TabBarView() yang akan menampilkan halaman dari FormKeuangan() & RiwayatKeuangan()
+      // ==================================================================================
       body: TabBarView(
         physics: const NeverScrollableScrollPhysics(),
         controller: _tabBarController,
