@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:catatan_keuangan/database/database_helper.dart';
 
 class FormKeuangan extends StatefulWidget {
   const FormKeuangan({super.key});
@@ -19,7 +20,7 @@ class _FormKeuanganState extends State<FormKeuangan> {
   // ========================================================
   // TextEditingController untuk mengontrol teks di TextField
   // ========================================================
-  final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _tanggalController = TextEditingController();
   final TextEditingController _judulController = TextEditingController();
   final TextEditingController _uangController = TextEditingController();
 
@@ -30,14 +31,14 @@ class _FormKeuanganState extends State<FormKeuangan> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime(2000), // Batas minimum tahun
-      lastDate: DateTime(2100), // Batas maksimum tahun
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
     );
 
     if (picked != null) {
       setState(() {
         // Format tanggal sesuai kebutuhan (Format: DD-MM-YYYY)
-        _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
+        _tanggalController.text = DateFormat('dd-MM-yyyy').format(picked);
       });
     }
   }
@@ -47,10 +48,56 @@ class _FormKeuanganState extends State<FormKeuangan> {
   // ==============================================================
   @override
   void dispose() {
-    _dateController.dispose();
+    _tanggalController.dispose();
     _judulController.dispose();
     _uangController.dispose();
     super.dispose();
+  }
+
+  Future<void> simpanTransaksi() async {
+    final String judulTransaksi = _judulController.text.trim();
+    final int nominalTransaksi = int.tryParse(_uangController.text.trim()) ?? 0;
+    final String tanggalTransaksi = _tanggalController.text.trim();
+    final String tipeTransaksi = _switchOn ? "Pemasukan" : "Pengeluaran";
+    final int saldoTerakhir = await DatabaseHelper.instance.getSaldoTerakhir();
+
+    try {
+      // ==================================================
+      // Hitung jumlah saldo baru berdasarkan status switch
+      // ==================================================
+      final int jumlahSaldoBaru = _switchOn
+          ? saldoTerakhir + nominalTransaksi
+          : saldoTerakhir - nominalTransaksi;
+
+      // ==============================================================
+      // Buat objek transaksi dengan uangMasuk / uangKeluar yang sesuai
+      // ==============================================================
+      final transaksiBaru = CatatanKeuangan(
+        idTransaksi: null,
+        judulTransaksi: judulTransaksi,
+        jumlahSaldo: jumlahSaldoBaru,
+        uangMasuk: _switchOn ? nominalTransaksi : null,
+        uangKeluar: !_switchOn ? nominalTransaksi : null,
+        tipeTransaksi: tipeTransaksi,
+        tanggalTransaksi: tanggalTransaksi,
+      );
+
+      // ==================
+      // Simpan ke database
+      // ==================
+      await DatabaseHelper.instance.insertCatatanKeuangan(transaksiBaru);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Transaksi berhasil disimpan!')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Transaksi gagal disimpan!\n$e')));
+    }
   }
 
   @override
@@ -215,9 +262,11 @@ class _FormKeuanganState extends State<FormKeuangan> {
                               ],
                             ),
                             SizedBox(height: 24),
+                            // ===================================
                             // TextFormField() sebagai date picker
+                            // ===================================
                             TextFormField(
-                              controller: _dateController,
+                              controller: _tanggalController,
                               // ===================================================
                               // (WAJIB) Pengguna tidak bisa mengetik manual tanggal
                               // ===================================================
@@ -251,12 +300,14 @@ class _FormKeuanganState extends State<FormKeuangan> {
                                 // Tombol simpan data ke database
                                 // ==============================
                                 onPressed: () {
-                                  if (_formKey.currentState!.validate()) {}
+                                  if (_formKey.currentState!.validate()) {
+                                    simpanTransaksi();
+                                  }
                                   // ==============================================
                                   // Menghapus semua isi dari semua Text(Form)Field
                                   // ==============================================
                                   setState(() {
-                                    _dateController.clear();
+                                    _tanggalController.clear();
                                     _judulController.clear();
                                     _uangController.clear();
                                   });

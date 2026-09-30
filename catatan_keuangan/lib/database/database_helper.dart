@@ -8,8 +8,8 @@ class CatatanKeuangan {
   final int? idTransaksi;
   final String judulTransaksi;
   final int jumlahSaldo;
-  final int uangMasuk;
-  final int uangKeluar;
+  final int? uangMasuk;
+  final int? uangKeluar;
   final String tipeTransaksi;
   final String tanggalTransaksi;
   CatatanKeuangan({
@@ -45,8 +45,8 @@ class CatatanKeuangan {
       idTransaksi: map['idTransaksi'] as int?,
       judulTransaksi: map['judulTransaksi'] as String,
       jumlahSaldo: map['jumlahSaldo'] as int,
-      uangMasuk: map['uangMasuk'] as int,
-      uangKeluar: map['uangKeluar'] as int,
+      uangMasuk: map['uangMasuk'] as int?,
+      uangKeluar: map['uangKeluar'] as int?,
       tipeTransaksi: map['tipeTransaksi'] as String,
       tanggalTransaksi: map['tanggalTransaksi'] as String,
     );
@@ -167,5 +167,20 @@ class DatabaseHelper {
       'DELETE FROM catatan_keuangan WHERE idTransaksi = ?',
       [idTransaksi],
     );
+  }
+
+  // =====================================================================
+  // Fungsi untuk mendapatkan jumlahSaldo terakhir dari transaksi terakhir
+  // =====================================================================
+  Future<int> getSaldoTerakhir() async {
+    final db = await instance.database;
+    final List<Map<String, dynamic>> result = await db.rawQuery(
+      'SELECT jumlahSaldo FROM catatan_keuangan ORDER BY idTransaksi DESC LIMIT 1',
+    );
+
+    if (result.isNotEmpty) {
+      return result.first['jumlahSaldo'] as int? ?? 0;
+    }
+    return 0; // Jika belum ada transaksi sama sekali, saldo awal = 0
   }
 }
