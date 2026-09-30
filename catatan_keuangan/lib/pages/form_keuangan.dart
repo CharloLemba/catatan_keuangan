@@ -91,13 +91,19 @@ class _FormKeuanganState extends State<FormKeuangan> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Transaksi berhasil disimpan!')),
       );
-      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Transaksi gagal disimpan!\n$e')));
     }
+  }
+
+  // -------------------------
+  // Fungsi untuk refresh data
+  // -------------------------
+  void _refreshData() {
+    setState(() {});
   }
 
   @override
@@ -271,10 +277,10 @@ class _FormKeuanganState extends State<FormKeuangan> {
                               // (WAJIB) Pengguna tidak bisa mengetik manual tanggal
                               // ===================================================
                               readOnly: true,
-                              onTap: () => _selectDate(context),
                               // ===============================
                               // Memicu date picker saat di-klik
                               // ===============================
+                              onTap: () => _selectDate(context),
                               decoration: const InputDecoration(
                                 labelText: 'Pilih Tanggal',
                                 hintText: 'DD-MM-YYYY',
@@ -300,9 +306,7 @@ class _FormKeuanganState extends State<FormKeuangan> {
                                 // Tombol simpan data ke database
                                 // ==============================
                                 onPressed: () {
-                                  if (_formKey.currentState!.validate()) {
-                                    simpanTransaksi();
-                                  }
+                                  simpanTransaksi();
                                   // ==============================================
                                   // Menghapus semua isi dari semua Text(Form)Field
                                   // ==============================================
@@ -311,6 +315,7 @@ class _FormKeuanganState extends State<FormKeuangan> {
                                     _judulController.clear();
                                     _uangController.clear();
                                   });
+                                  _refreshData();
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
