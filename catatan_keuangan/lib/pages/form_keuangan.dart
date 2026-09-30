@@ -56,7 +56,8 @@ class _FormKeuanganState extends State<FormKeuangan> {
 
   Future<void> simpanTransaksi() async {
     final String judulTransaksi = _judulController.text.trim();
-    final int nominalTransaksi = int.tryParse(_uangController.text.trim()) ?? 0;
+    final String cleanedUang = _uangController.text.replaceAll('.', '').trim();
+    final int nominalTransaksi = int.tryParse(cleanedUang) ?? 0;
     final String tanggalTransaksi = _tanggalController.text.trim();
     final String tipeTransaksi = _switchOn ? "Pemasukan" : "Pengeluaran";
     final int saldoTerakhir = await DatabaseHelper.instance.getSaldoTerakhir();
@@ -233,34 +234,61 @@ class _FormKeuanganState extends State<FormKeuangan> {
                                       labelText: _switchOn
                                           ? "Uang Masuk"
                                           : "Uang Keluar",
-                                      hintText: "Contoh: 15000",
+                                      hintText: "Contoh: 15.000",
                                       contentPadding: EdgeInsets.symmetric(
                                         horizontal: 16,
                                         vertical: 14,
                                       ),
                                     ),
                                     keyboardType: TextInputType.number,
-                                    // ==========================================
-                                    // (WAJIB) Agar input hanya berupa angka saja
-                                    // ==========================================
                                     inputFormatters: [
-                                      FilteringTextInputFormatter.allow(
-                                        RegExp(r'[0-9]'),
-                                      ),
+                                      // ===================================================================================================
+                                      // Formatter ringkas, untuk menaruh titip setiap 3 digit yang dimasukan user, tanpa membuat class baru
+                                      // ===================================================================================================
+                                      TextInputFormatter.withFunction((
+                                        oldValue,
+                                        newValue,
+                                      ) {
+                                        if (newValue.text.isEmpty)
+                                          return newValue;
+                                        // ===========================================================
+                                        // Hapus karakter non-angka & format ulang ke ribuan Indonesia
+                                        // ===========================================================
+                                        String cleaned = newValue.text
+                                            .replaceAll(RegExp(r'[^0-9]'), '');
+                                        int value = int.tryParse(cleaned) ?? 0;
+                                        String formatted = NumberFormat(
+                                          '#,###',
+                                          'id_ID',
+                                        ).format(value);
+
+                                        // ======================================================
+                                        // Pertahankan posisi kursor agar tidak melompat ke depan
+                                        // ======================================================
+                                        int cursorPosition =
+                                            newValue.selection.baseOffset;
+                                        int delta =
+                                            formatted.length -
+                                            newValue.text.length;
+                                        int newOffset = (cursorPosition + delta)
+                                            .clamp(0, formatted.length);
+
+                                        return TextEditingValue(
+                                          text: formatted,
+                                          selection: TextSelection.collapsed(
+                                            offset: newOffset,
+                                          ),
+                                        );
+                                      }),
                                     ],
-                                    // ================================================
-                                    // Hilangkan spasi tambahan (jaga-jaga kalau lolos)
-                                    // ================================================
                                     onChanged: (value) {
-                                      String cleanedValue = value.replaceAll(
-                                        ' ',
-                                        '',
-                                      );
-                                      // ===============================================================================================
-                                      // Ubah ke integer (int.tryParse otomatis buang semua angka 0 di depan, misal "0001500" jadi 1500)
-                                      // ===============================================================================================
-                                      if (cleanedValue.isNotEmpty) {
-                                        int.tryParse(cleanedValue);
+                                      if (value.isNotEmpty) {
+                                        // =============================================
+                                        // Ambil angka bersih tanpa titik untuk database
+                                        // =============================================
+                                        int? nominal = int.tryParse(
+                                          value.replaceAll('.', ''),
+                                        );
                                       }
                                     },
                                   ),
@@ -283,7 +311,7 @@ class _FormKeuanganState extends State<FormKeuangan> {
                               onTap: () => _selectDate(context),
                               decoration: const InputDecoration(
                                 labelText: 'Pilih Tanggal',
-                                hintText: 'DD-MM-YYYY',
+                                hintText: 'HH-BB-TTTT',
                                 contentPadding: EdgeInsets.symmetric(
                                   horizontal: 16,
                                   vertical: 14,
@@ -302,10 +330,52 @@ class _FormKeuanganState extends State<FormKeuangan> {
                               // =================================================
                               width: double.infinity,
                               child: ElevatedButton(
-                                // ==============================
-                                // Tombol simpan data ke database
-                                // ==============================
+                                // ========================================
+                                // Tombol simpan data transaksi ke database
+                                // ========================================
                                 onPressed: () {
+                                  // =====================================================================
+                                  // Memeriksa apakah TextFormField Judul Transaksi sudah diisi atau belum
+                                  // =====================================================================
+                                  if (_judulController.text.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Judul Transaksi belum diisi',
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  // =======================================================================
+                                  // Memeriksa apakah TextFormField Nominal Transaksi sudah diisi atau belum
+                                  // =======================================================================
+                                  if (_uangController.text.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Nominal Transaksi belum diisi',
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  // =======================================================================
+                                  // Memeriksa apakah TextFormField Tanggal Transaksi sudah diisi atau belum
+                                  // =======================================================================
+                                  if (_tanggalController.text.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Tanggal Transaksi belum diisi',
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  // ==============================
+                                  // Fungsi simpan data ke database
+                                  // ==============================
                                   simpanTransaksi();
                                   // ==============================================
                                   // Menghapus semua isi dari semua Text(Form)Field

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:catatan_keuangan/database/database_helper.dart';
+import 'package:intl/intl.dart';
 
 class RiwayatKeuangan extends StatefulWidget {
   const RiwayatKeuangan({super.key});
@@ -9,10 +10,16 @@ class RiwayatKeuangan extends StatefulWidget {
 }
 
 class _RiwayatKeuanganState extends State<RiwayatKeuangan> {
+  // =============================================
+  // Mengambil data Catatan Keuangan dari database
+  // =============================================
   Future<List<CatatanKeuangan>> _catatanKeuangan() async {
     return await DatabaseHelper.instance.getCatatanKeuangan();
   }
 
+  // ===============================================================
+  // Mengambil data Saldo terakhir di Catatan Keuangan dari database
+  // ===============================================================
   Future<int> _saldoTerakhir() async {
     return await DatabaseHelper.instance.getSaldoTerakhir();
   }
@@ -39,18 +46,39 @@ class _RiwayatKeuanganState extends State<RiwayatKeuangan> {
       ),
     );
 
-    if (konfirmasi == true) {
-      // Hapus data dari database menggunakan idTransaksi
-      await DatabaseHelper.instance.deleteCatatanKeuangan(
-        transaksi.idTransaksi!,
-      );
+    try {
+      if (konfirmasi == true) {
+        // ================================================
+        // Hapus data dari database menggunakan idTransaksi
+        // ================================================
+        await DatabaseHelper.instance.deleteCatatanKeuangan(
+          transaksi.idTransaksi!,
+        );
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Transaksi berhasil dihapus!')),
-      );
-
+        // ==================================
+        // Pesan ketika data berhasil dihapus
+        // ==================================
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Transaksi berhasil dihapus!')),
+        );
+      }
+      // =============================================
       // Refresh tampilan halaman setelah data dihapus
+      // =============================================
+      _refreshData();
+    }
+    // ===============================
+    // Pesan ketika data gagal dihapus
+    // ===============================
+    catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Transaksi gagal dihapus!\n$e')));
+      // ================================================
+      // Refresh tampilan halaman jika data gagal dihapus
+      // ================================================
       _refreshData();
     }
   }
@@ -88,14 +116,22 @@ class _RiwayatKeuanganState extends State<RiwayatKeuangan> {
               future: _saldoTerakhir(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Text(
-                    "Saldo anda: Rp. Memuat...",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  return Text(
+                    "Saldo anda: Rp. ${Icons.hourglass_bottom}",
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   );
                 }
                 final int saldo = snapshot.data ?? 0;
                 return Text(
-                  "Saldo anda: Rp. $saldo",
+                  /*
+                  'id_ID': Mengatur lokal ke Indonesia agar tanda pemisah yang digunakan otomatis berupa titik (.), bukan koma (,).
+                  '#,###': Menentukan format agar angka dikelompokkan setiap 3 digit.
+                  .format(...): Fungsi ini menerima tipe data angka (int atau double).
+                  */
+                  "Saldo anda: Rp. ${NumberFormat('#,###', 'id_ID').format(saldo)}",
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 );
               },
@@ -136,7 +172,7 @@ class _RiwayatKeuanganState extends State<RiwayatKeuangan> {
                   // -----------------------------------------------
                   final listTransaksi = snapshot.data!;
                   return Padding(
-                    padding: EdgeInsets.all(12),
+                    padding: EdgeInsets.all(0),
                     child: ListView.builder(
                       itemCount: listTransaksi.length,
                       itemBuilder: (context, index) {
@@ -144,7 +180,9 @@ class _RiwayatKeuanganState extends State<RiwayatKeuangan> {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
+                            // =====================
                             // Card Timeline Tanggal
+                            // =====================
                             Padding(
                               padding: const EdgeInsets.only(
                                 top: 10.0,
@@ -172,7 +210,9 @@ class _RiwayatKeuanganState extends State<RiwayatKeuangan> {
                               ),
                             ),
 
-                            // Card Transaksi Asli Milik Lu (Utuh 100%)
+                            // ============================
+                            // Card Transaksi dari database
+                            // ============================
                             Card(
                               clipBehavior: Clip.antiAlias,
                               elevation: 4,
@@ -181,14 +221,20 @@ class _RiwayatKeuanganState extends State<RiwayatKeuangan> {
                               ),
                               child: ListTile(
                                 leading: transaksi.tipeTransaksi == "Pemasukan"
-                                    ? Icon(Icons.upload, color: Colors.green)
-                                    : Icon(Icons.download, color: Colors.red),
+                                    ? Icon(Icons.download, color: Colors.green)
+                                    : Icon(Icons.upload, color: Colors.red),
                                 title: Text(transaksi.judulTransaksi),
                                 subtitle: Text(
+                                  /*
+                                    'id_ID': Mengatur lokal ke Indonesia agar tanda pemisah yang digunakan otomatis berupa titik (.), bukan koma (,).
+                                    '#,###': Menentukan format agar angka dikelompokkan setiap 3 digit.
+                                    .format(...): Fungsi ini menerima tipe data angka (int atau double).
+                                  */
                                   transaksi.tipeTransaksi == "Pemasukan"
-                                      ? "Rp. ${transaksi.uangMasuk.toString()}"
-                                      : "Rp. ${transaksi.uangKeluar.toString()}",
+                                      ? "Rp. ${NumberFormat('#,###', 'id_ID').format(transaksi.uangMasuk)}"
+                                      : "Rp. ${NumberFormat('#,###', 'id_ID').format(transaksi.uangKeluar)}",
                                 ),
+
                                 trailing: IconButton(
                                   onPressed: () {
                                     hapusTransaksi(transaksi);
