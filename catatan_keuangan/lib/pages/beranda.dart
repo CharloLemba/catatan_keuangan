@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:catatan_keuangan/pages/form_keuangan.dart' as form_keuangan;
 import 'package:catatan_keuangan/pages/riwayat_keuangan.dart'
     as riwayat_keuangan;
+import 'package:catatan_keuangan/main.dart'; // Diperlukan untuk mengakses MainApp.of(context)
 
 class Beranda extends StatefulWidget {
   const Beranda({super.key});
@@ -36,6 +37,12 @@ class _BerandaState extends State<Beranda> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    // =============================================================
+    // Cek status tema saat ini untuk ikon pada FloatingActionButton
+    // =============================================================
+    final mainApp = MainApp.of(context);
+    final isDark = mainApp?.isDarkTheme ?? false;
+
     return Scaffold(
       // =====================
       // AppBar utama aplikasi
@@ -72,6 +79,17 @@ class _BerandaState extends State<Beranda> with TickerProviderStateMixin {
           form_keuangan.FormKeuangan(),
           riwayat_keuangan.RiwayatKeuangan(),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
+        onPressed: () {
+          // =======================================
+          // Tombol untuk mengganti dark/light theme
+          // =======================================
+          MainApp.of(context)?.toggleTheme();
+        },
+        child: Icon(isDark ? Icons.sunny : Icons.nightlight_round),
       ),
     );
   }
